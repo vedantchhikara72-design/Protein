@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Protein Ledger</title>
+<meta name="description" content="Daily protein tracker for Indian food.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1c2024">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Protein">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;600&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --steel-900:#1c2024;
+    --steel-700:#31383f;
+    --steel-500:#5a646d;
+    --steel-200:#c9cfd4;
+    --steel-050:#eef1f3;
+    --haldi:#e8a317;
+    --haldi-deep:#b87a06;
+    --brass:#8a6a2f;
+    --ok:#3f7d58;
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html{background:var(--steel-900)}
+  body{
+    background:var(--steel-050);
+    color:var(--steel-900);
+    font-family:'Work Sans',system-ui,-apple-system,sans-serif;
+    padding:0 0 calc(64px + var(--safe-b));
+    min-height:100vh;
+    -webkit-user-select:none;user-select:none;
+  }
+  input{-webkit-user-select:text;user-select:text}
+  .wrap{max-width:560px;margin:0 auto;padding:0 16px}
+
+  .gauge{
+    position:relative;background:var(--steel-900);color:#fff;overflow:hidden;
+    padding:calc(24px + var(--safe-t)) 20px 22px;
+    border-bottom:3px solid var(--brass);
+  }
+  .fill{
+    position:absolute;left:0;right:0;bottom:0;height:0%;
+    background:linear-gradient(180deg,var(--haldi) 0%,var(--haldi-deep) 100%);
+    transition:height .7s cubic-bezier(.2,.8,.2,1);
+  }
+  .fill::after{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:#fff;opacity:.55}
+  .gauge-inner{position:relative;z-index:2;text-align:center}
+  .eyebrow{
+    font-family:'Oswald',sans-serif;font-weight:400;letter-spacing:.22em;
+    text-transform:uppercase;font-size:11px;color:var(--steel-200);
+  }
+  .gauge.hit .eyebrow{color:#fff}
+  .big{
+    font-family:'Oswald',sans-serif;font-weight:600;font-size:84px;line-height:.92;
+    letter-spacing:-.02em;margin:6px 0 0;font-variant-numeric:tabular-nums;
+    text-shadow:0 2px 14px rgba(0,0,0,.35);
+  }
+  .of{font-family:'Oswald',sans-serif;font-weight:300;font-size:15px;letter-spacing:.14em;opacity:.85;cursor:pointer}
+  .datebar{display:flex;align-items:center;justify-content:space-between;margin-top:16px;gap:8px}
+  .datebar button{
+    background:rgba(255,255,255,.12);border:0;color:#fff;font-family:'Oswald',sans-serif;
+    letter-spacing:.1em;font-size:13px;padding:8px 14px;border-radius:2px;cursor:pointer;
+  }
+  .datebar button:active{background:rgba(255,255,255,.28)}
+  .datebar .day{font-family:'Oswald',sans-serif;letter-spacing:.14em;text-transform:uppercase;font-size:13px}
+
+  h2{
+    font-family:'Oswald',sans-serif;font-weight:400;text-transform:uppercase;
+    letter-spacing:.18em;font-size:12px;color:var(--steel-500);
+    margin:26px 0 10px;display:flex;align-items:center;gap:10px;
+  }
+  h2::after{content:"";flex:1;height:1px;background:var(--steel-200)}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .food{
+    display:flex;justify-content:space-between;align-items:center;gap:8px;
+    background:#fff;border:1px solid var(--steel-200);border-left:3px solid var(--brass);
+    padding:11px 12px;border-radius:2px;cursor:pointer;text-align:left;
+    font-family:'Work Sans',sans-serif;font-size:14px;color:var(--steel-900);
+  }
+  .food:active{background:var(--haldi);border-color:var(--haldi-deep)}
+  .food .n{line-height:1.25}
+  .food .s{display:block;font-size:11px;color:var(--steel-500);margin-top:2px}
+  .food:active .s{color:var(--steel-900)}
+  .food .g{font-family:'Oswald',sans-serif;font-weight:600;font-size:18px;font-variant-numeric:tabular-nums;flex-shrink:0}
+
+  .row{display:flex;justify-content:space-between;align-items:center;padding:12px 4px;border-bottom:1px solid var(--steel-200);gap:10px}
+  .row .nm{font-size:15px}
+  .row .qty{font-size:12px;color:var(--steel-500)}
+  .row .rg{font-family:'Oswald',sans-serif;font-weight:600;font-size:17px;font-variant-numeric:tabular-nums}
+  .x{background:none;border:0;color:var(--steel-500);font-size:20px;line-height:1;padding:4px 8px;cursor:pointer}
+  .empty{border:1px dashed var(--steel-200);padding:22px 16px;text-align:center;color:var(--steel-500);font-size:14px;border-radius:2px}
+
+  .custom{display:flex;gap:8px;margin-top:10px}
+  .custom input{
+    font-family:'Work Sans',sans-serif;font-size:16px;padding:11px 12px;
+    border:1px solid var(--steel-200);border-radius:2px;background:#fff;width:100%;
+  }
+  .custom input.pg{max-width:96px}
+  input:focus-visible,.food:focus-visible,button:focus-visible{outline:2px solid var(--haldi);outline-offset:2px}
+  .custom button{
+    background:var(--steel-900);color:#fff;border:0;border-radius:2px;
+    font-family:'Oswald',sans-serif;letter-spacing:.1em;font-size:13px;padding:0 18px;cursor:pointer;
+  }
+
+  .streak{margin-top:24px;background:#fff;border:1px solid var(--steel-200);padding:14px;border-radius:2px;display:flex;gap:14px;align-items:center}
+  .streak .num{font-family:'Oswald',sans-serif;font-weight:600;font-size:34px;line-height:1;color:var(--haldi-deep)}
+  .streak .lbl{font-size:13px;color:var(--steel-500);line-height:1.35}
+  .bars{display:flex;gap:3px;margin-left:auto}
+  .bar{width:7px;height:32px;background:var(--steel-200);border-radius:1px}
+  .bar.on{background:var(--ok)}
+
+  .tools{display:flex;gap:8px;margin-top:20px}
+  .tools button{
+    flex:1;background:#fff;border:1px solid var(--steel-200);color:var(--steel-700);
+    font-family:'Oswald',sans-serif;letter-spacing:.1em;font-size:12px;text-transform:uppercase;
+    padding:12px;border-radius:2px;cursor:pointer;
+  }
+  .tools button:active{background:var(--steel-200)}
+  .note{font-size:12px;color:var(--steel-500);margin-top:18px;line-height:1.5}
+  .toast{
+    position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + var(--safe-b));
+    background:var(--steel-900);color:#fff;font-size:14px;padding:11px 18px;border-radius:2px;
+    opacity:0;pointer-events:none;transition:opacity .25s;z-index:9;
+  }
+  .toast.show{opacity:1}
+  @media (prefers-reduced-motion:reduce){.fill,.toast{transition:none}}
+</style>
+</head>
+<body>
+
+<div class="gauge" id="gauge">
+  <div class="fill" id="fill"></div>
+  <div class="gauge-inner">
+    <div class="eyebrow" id="status">Protein logged today</div>
+    <div class="big" id="total">0</div>
+    <div class="of" id="ofline" role="button" tabindex="0" title="Tap to change target">OF 170 G</div>
+    <div class="datebar">
+      <button id="prev">‹ PREV</button>
+      <span class="day" id="day"></span>
+      <button id="next">NEXT ›</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <h2>Tap to add</h2>
+  <div class="grid" id="foods"></div>
+
+  <h2>Something else</h2>
+  <div class="custom">
+    <input id="cname" placeholder="Food name" aria-label="Food name" autocomplete="off">
+    <input id="cg" class="pg" type="number" inputmode="numeric" placeholder="g" aria-label="Protein in grams">
+    <button id="cadd">ADD</button>
+  </div>
+
+  <h2>Today's log</h2>
+  <div id="log"></div>
+
+  <div class="streak">
+    <div class="num" id="streak">0</div>
+    <div class="lbl">days hitting<br><span id="floorlbl">150</span> g or more</div>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <h2>Your data</h2>
+  <div class="tools">
+    <button id="export">Back up</button>
+    <button id="import">Restore</button>
+  </div>
+  <input type="file" id="file" accept="application/json" hidden>
+
+  <p class="note">Values are cooked/edible-portion estimates for typical Indian servings. One katori = ~150 g. Everything is stored on this phone only — back up now and then.</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const FOODS = [
+  {n:"Whey scoop",        s:"30 g",              g:24},
+  {n:"Egg, whole",        s:"1 large",           g:6},
+  {n:"Egg whites",        s:"3 whites",          g:11},
+  {n:"Chicken breast",    s:"100 g cooked",      g:31},
+  {n:"Chicken curry",     s:"150 g, w/ bone",    g:22},
+  {n:"Paneer",            s:"100 g",             g:18},
+  {n:"Soya chunks",       s:"50 g dry",          g:26},
+  {n:"Curd / dahi",       s:"1 katori",          g:6},
+  {n:"Greek curd",        s:"100 g",             g:10},
+  {n:"Milk",              s:"250 ml",            g:8},
+  {n:"Dal (arhar/moong)", s:"1 katori",          g:6},
+  {n:"Rajma / chole",     s:"1 katori",          g:9},
+  {n:"Sprouts",           s:"100 g",             g:8},
+  {n:"Fish (rohu)",       s:"100 g",             g:20},
+  {n:"Tofu",              s:"100 g",             g:12},
+  {n:"Peanuts",           s:"30 g",              g:8},
+  {n:"Roti",              s:"1 medium",          g:3},
+  {n:"Rice",              s:"1 katori cooked",   g:3},
+];
+
+let target = parseInt(localStorage.getItem("pl:target") || "170", 10);
+let floor  = Math.round(target * 0.88);
+let cursor = new Date();
+let log = [];
+
+const key = d => "pl:" + [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-");
+const isToday = d => key(d) === key(new Date());
+
+function read(d){
+  try{ return JSON.parse(localStorage.getItem(key(d)) || "[]"); }
+  catch(e){ return []; }
+}
+function write(){
+  try{ localStorage.setItem(key(cursor), JSON.stringify(log)); }
+  catch(e){ toast("Couldn't save — storage is full"); }
+}
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), 1900);
+}
+
+function load(){ log = read(cursor); render(); buildStreak(); }
+
+function render(){
+  const total = log.reduce((a,b)=>a+b.g,0);
+  document.getElementById("total").textContent = total;
+  document.getElementById("fill").style.height = Math.min(100, total/target*100) + "%";
+  const hit = total >= target;
+  document.getElementById("gauge").classList.toggle("hit", hit);
+  document.getElementById("status").textContent = hit ? "Target hit — good day" : (target-total) + " g to go";
+  document.getElementById("ofline").textContent = "OF " + target + " G";
+  document.getElementById("floorlbl").textContent = floor;
+
+  document.getElementById("day").textContent = isToday(cursor)
+    ? "TODAY"
+    : cursor.toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"});
+  document.getElementById("next").style.visibility = isToday(cursor) ? "hidden" : "visible";
+
+  const box = document.getElementById("log");
+  if(!log.length){ box.innerHTML = '<div class="empty">Nothing logged. Tap a food above.</div>'; return; }
+  box.innerHTML = "";
+  log.forEach((item,i)=>{
+    const row = document.createElement("div");
+    row.className = "row";
+    const left = document.createElement("div");
+    const nm = document.createElement("div"); nm.className = "nm"; nm.textContent = item.n;
+    const qt = document.createElement("div"); qt.className = "qty"; qt.textContent = item.s || "";
+    left.append(nm, qt);
+    const g = document.createElement("div"); g.className = "rg"; g.textContent = item.g + " g";
+    const x = document.createElement("button");
+    x.className = "x"; x.textContent = "×"; x.setAttribute("aria-label","Remove "+item.n);
+    x.onclick = ()=>{ log.splice(i,1); write(); render(); buildStreak(); };
+    row.append(left, g, x);
+    box.appendChild(row);
+  });
+}
+
+function add(item){
+  log.push(item); write(); render(); buildStreak();
+  if(navigator.vibrate) navigator.vibrate(8);
+}
+
+function buildStreak(){
+  const bars = document.getElementById("bars");
+  bars.innerHTML = "";
+  let streak = 0, broken = false;
+  for(let i=0;i<7;i++){
+    const d = new Date(); d.setDate(d.getDate()-i);
+    const t = read(d).reduce((a,b)=>a+b.g,0);
+    const hit = t >= floor;
+    if(hit && !broken) streak++; else broken = true;
+    const b = document.createElement("div");
+    b.className = "bar" + (hit ? " on" : "");
+    bars.prepend(b);
+  }
+  document.getElementById("streak").textContent = streak;
+}
+
+const grid = document.getElementById("foods");
+FOODS.forEach(f=>{
+  const b = document.createElement("button");
+  b.className = "food";
+  b.innerHTML = '<span class="n"></span><span class="g"></span>';
+  const n = b.querySelector(".n");
+  n.textContent = f.n;
+  const s = document.createElement("span"); s.className = "s"; s.textContent = f.s;
+  n.appendChild(s);
+  b.querySelector(".g").textContent = f.g;
+  b.onclick = ()=>add({...f});
+  grid.appendChild(b);
+});
+
+document.getElementById("cadd").onclick = ()=>{
+  const n = document.getElementById("cname").value.trim();
+  const g = parseInt(document.getElementById("cg").value,10);
+  if(!n || !g){ toast("Need a name and a number"); return; }
+  add({n, s:"custom", g});
+  document.getElementById("cname").value = "";
+  document.getElementById("cg").value = "";
+};
+document.getElementById("prev").onclick = ()=>{ cursor.setDate(cursor.getDate()-1); load(); };
+document.getElementById("next").onclick = ()=>{ cursor.setDate(cursor.getDate()+1); load(); };
+
+function editTarget(){
+  const v = prompt("Daily protein target in grams", target);
+  const n = parseInt(v,10);
+  if(!n || n < 20 || n > 500) return;
+  target = n; floor = Math.round(n*0.88);
+  localStorage.setItem("pl:target", String(n));
+  render(); buildStreak();
+}
+document.getElementById("ofline").onclick = editTarget;
+document.getElementById("ofline").onkeydown = e => { if(e.key==="Enter"||e.key===" ") editTarget(); };
+
+document.getElementById("export").onclick = ()=>{
+  const out = {app:"protein-ledger", version:1, exported:new Date().toISOString(), target, days:{}};
+  for(let i=0;i<localStorage.length;i++){
+    const k = localStorage.key(i);
+    if(k.startsWith("pl:") && k !== "pl:target") out.days[k.slice(3)] = JSON.parse(localStorage.getItem(k));
+  }
+  const blob = new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "protein-ledger-" + key(new Date()).slice(3) + ".json";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+  toast("Backup saved");
+};
+document.getElementById("import").onclick = ()=>document.getElementById("file").click();
+document.getElementById("file").onchange = e => {
+  const f = e.target.files[0];
+  if(!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try{
+      const data = JSON.parse(r.result);
+      if(data.app !== "protein-ledger") throw new Error("wrong file");
+      Object.entries(data.days || {}).forEach(([d,v]) => localStorage.setItem("pl:"+d, JSON.stringify(v)));
+      if(data.target){ target = data.target; floor = Math.round(target*0.88); localStorage.setItem("pl:target", String(target)); }
+      load();
+      toast("Restored " + Object.keys(data.days||{}).length + " days");
+    }catch(err){
+      toast("That's not a Protein Ledger backup");
+    }
+    e.target.value = "";
+  };
+  r.readAsText(f);
+};
+
+// keep "today" correct if the app sits open past midnight
+document.addEventListener("visibilitychange", ()=>{ if(!document.hidden) load(); });
+
+load();
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", ()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
+</script>
+</body>
+</html>
